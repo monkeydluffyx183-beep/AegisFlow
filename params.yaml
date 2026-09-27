@@ -1,0 +1,13 @@
+fraud:
+  review_threshold: 0.45
+  decline_threshold: 0.76
+  target_fpr: 0.01
+  calibration: isotonic
+  model: gradient_boosted
+features:
+  windows: [1m, 1h, 24h, 7d, 30d]
+  graph_hops: 2
+investigation:
+  max_agent_turns: 12
+  evidence_recall_floor: 0.8
+  narrative_faithfulness: 1.0
