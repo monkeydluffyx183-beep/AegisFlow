@@ -8,7 +8,7 @@ from scoring.schemas import ScoreRequest as CoreScoreRequest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .db import Alert, Case, Decision, Entity, EntityEdge, ThresholdConfig, Transaction, User, audit
+from .db import Alert, Case, Decision, Entity, EntityEdge, GroundTruthLabel, ThresholdConfig, Transaction, User, audit
 
 
 def seed_if_empty(session: Session, scorer: Any) -> None:
@@ -47,7 +47,8 @@ def seed_if_empty(session: Session, scorer: Any) -> None:
         ("acct-9071", "dev-9071", "uses_device", 1.0), ("acct-1180", "dev-1180", "uses_device", 1.0), ("acct-5520", "dev-5520", "uses_device", 1.0), ("acct-7312", "dev-7312", "uses_device", 1.0),
         ("acct-ring-1042", "acct-ring-2281", "transfers_to", 0.82), ("acct-ring-2281", "acct-ring-3988", "transfers_to", 0.79), ("acct-ring-3988", "acct-ring-1042", "transfers_to", 0.76),
     ]:
-        session.add(EntityEdge(src_id=src, dst_id=dst, edge_type=edge_type, weight=weight))
+        dst_type = {"uses_device": "device", "uses_ip": "ip"}.get(edge_type, "account")
+        session.add(EntityEdge(src_type="account", src_id=src, dst_type=dst_type, dst_id=dst, edge_type=edge_type, weight=weight))
 
     for account_id, graph_risk, share_degree, avg in [("acct-ring-1042", .94, 8, 250), ("acct-ring-2281", .87, 7, 320), ("acct-ring-3988", .82, 6, 190), ("acct-ring-4406", .72, 5, 450), ("acct-9071", .06, 0, 180), ("acct-1180", .04, 0, 145), ("acct-5520", .08, 0, 210), ("acct-7312", .18, 2, 290)]:
         scorer.seed_account(account_id, graph_risk=graph_risk, device_sharing_degree=share_degree, avg_amount=avg, amount_std=max(avg * .5, 90), known_device=f"dev-{account_id.removeprefix('acct-')}")
@@ -75,6 +76,7 @@ def seed_if_empty(session: Session, scorer: Any) -> None:
         session.add(Transaction(id=transaction_id, ts=timestamp, account_id=account, counterparty_id=counterparty, merchant_id=request.merchant_id, device_id=device, ip_id=ip, amount=amount, currency="USD", channel=request.channel, country="US", status="scored", raw={"synthetic_labels": labels}))
         decision_id = f"dec-demo-{index + 1:03d}"
         session.add(Decision(id=decision_id, transaction_id=transaction_id, decision=result.decision, score=result.score, calibrated_prob=result.calibrated_prob, reason_codes=[x.model_dump() for x in result.reason_codes], rule_hits=[x.model_dump() for x in result.rule_hits], features=result.features, model_version=result.model_version, challenger=result.challenger, latency_ms=result.latency_ms, degraded=False, ts=timestamp))
+        session.add(GroundTruthLabel(transaction_id=transaction_id, is_fraud=bool(labels)))
         if target_case:
             session.add(Alert(id=f"al-demo-{index + 1:03d}", transaction_id=transaction_id, case_id=target_case, alert_type="aml_typology" if labels else "risk_review", severity="critical" if labels else "medium", reason=("Smurfing pattern member" if labels else "Device/velocity review"), created_at=timestamp))
         elif result.decision in {"review", "decline"}:

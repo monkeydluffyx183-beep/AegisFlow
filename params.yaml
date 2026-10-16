@@ -5,8 +5,10 @@ fraud:
   calibration: isotonic
   model: gradient_boosted
 features:
-  windows: [1m, 1h, 24h, 7d, 30d]
+  windows: [1m, 1h, 24h, 7d]
   graph_hops: 2
+  known_fraud_cutoff: "2026-09-01T00:00:00Z"
+  feature_set_version: "m2-canonical"
 investigation:
   max_agent_turns: 12
   evidence_recall_floor: 0.8

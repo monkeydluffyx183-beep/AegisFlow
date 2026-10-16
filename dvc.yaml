@@ -14,3 +14,17 @@ stages:
       - params.yaml
     outs:
       - data/models/baseline.json
+  seed_known_fraud:
+    cmd: python db/seed/seed_known_fraud.py
+    deps:
+      - db/seed/seed_known_fraud.py
+      - ml/src/aegis_ml/features/definitions.py
+    params:
+      - features.known_fraud_cutoff
+  features_pit:
+    cmd: PYTHONPATH=ml/src python -m aegis_ml.features.offline --out data/features/features_pit.parquet
+    deps:
+      - ml/src/aegis_ml/features
+    outs:
+      - data/features/features_pit.parquet
+    always_changed: true

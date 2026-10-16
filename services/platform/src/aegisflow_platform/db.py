@@ -5,7 +5,19 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint, create_engine
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    PrimaryKeyConstraint,
+    String,
+    Text,
+    UniqueConstraint,
+    create_engine,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
 from .config import settings
@@ -39,12 +51,39 @@ class Entity(Base):
 
 class EntityEdge(Base):
     __tablename__ = "entity_edges"
+    __table_args__ = (UniqueConstraint("src_type", "src_id", "dst_type", "dst_id", "edge_type", name="uq_entity_edges_key"),)
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    src_type: Mapped[str] = mapped_column(String(16), default="account", server_default="account")
     src_id: Mapped[str] = mapped_column(String(96), index=True)
+    dst_type: Mapped[str] = mapped_column(String(16), default="account", server_default="account")
     dst_id: Mapped[str] = mapped_column(String(96), index=True)
     edge_type: Mapped[str] = mapped_column(String(32), index=True)
-    weight: Mapped[float] = mapped_column(Float, default=1.0)
+    weight: Mapped[float] = mapped_column(Float, default=1.0, server_default="1")
     first_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class GraphFeatureSnapshot(Base):
+    __tablename__ = "graph_feature_snapshots"
+    __table_args__ = (PrimaryKeyConstraint("entity_id", "computed_at", name="pk_graph_feature_snapshots"),)
+    entity_id: Mapped[str] = mapped_column(String(96))
+    computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    component_size: Mapped[int] = mapped_column(Integer)
+    dist_to_fraud: Mapped[int] = mapped_column(Integer)
+    risk_rank: Mapped[float] = mapped_column(Float)
+
+
+class KnownFraudEntity(Base):
+    __tablename__ = "known_fraud_entities"
+    entity_type: Mapped[str] = mapped_column(String(16), primary_key=True)
+    entity_id: Mapped[str] = mapped_column(String(96), primary_key=True)
+    confirmed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    source: Mapped[str] = mapped_column(String(32))
+
+
+class GroundTruthLabel(Base):
+    __tablename__ = "ground_truth_labels"
+    transaction_id: Mapped[str] = mapped_column(String(64), ForeignKey("transactions.id"), primary_key=True)
+    is_fraud: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
 
 
 class Transaction(Base):
@@ -60,7 +99,7 @@ class Transaction(Base):
     currency: Mapped[str] = mapped_column(String(3), default="USD")
     channel: Mapped[str] = mapped_column(String(16), default="card")
     country: Mapped[str] = mapped_column(String(2), default="US")
-    status: Mapped[str] = mapped_column(String(24), default="received")
+    status: Mapped[str | None] = mapped_column(String(24), nullable=True, default="received", server_default="received")
     raw: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
 
 

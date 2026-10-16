@@ -47,7 +47,15 @@ make lint                     # ruff + frontend type check when installed
 make generate COUNT=250       # stream synthetic events into the ingestion API
 make train                    # build a small reproducible baseline artifact
 make loadtest                 # optional Locust profile
+
+# M2 feature-store / entity-graph checks (fakeredis works without Docker)
+make test-m2
+make verify-m2
+# With Postgres + Redis running:
+make migrate && make seed-fraud && make up-m2
 ```
+
+M2's authenticated ingestion service listens on port `8001` and accepts `X-Service-Key` on `POST /api/v1/transactions`. It commits the transaction and typed entity edges before the atomic Redis Lua update; the response keeps `decision: null` until M4. `make parity` can additionally replay the exact 5,000-row proof against `PARITY_REDIS_URL` (use a scratch Redis database).
 
 Demo credentials are intentionally non-sensitive and only enabled when `DEMO_MODE=true`:
 

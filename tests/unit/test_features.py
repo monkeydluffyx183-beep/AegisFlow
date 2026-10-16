@@ -14,7 +14,7 @@ def test_offline_features_are_point_in_time_ordered() -> None:
     ]
     output = compute_features(rows)
     assert [row["id"] for row in output] == ["first", "later"]
-    assert output[0]["velocity_1h"] == 0
+    assert output[0]["velocity_1h"] == 0  # M1 compatibility wrapper excludes current row
     assert set(feature_names()).issubset(output[0])
 
 

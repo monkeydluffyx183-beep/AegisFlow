@@ -1,7 +1,11 @@
+# Build from repository root: docker build -f services/ingestion/Dockerfile .
 FROM python:3.12-slim
 WORKDIR /app
-RUN pip install --no-cache-dir fastapi uvicorn pydantic
-COPY services/ingestion/src /app/src
-ENV PYTHONPATH=/app/src
-EXPOSE 8020
-CMD ["uvicorn", "ingestion.main:app", "--host", "0.0.0.0", "--port", "8020"]
+COPY services/ingestion/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY services/ingestion/src /app/services/ingestion/src
+COPY ml/src /app/ml/src
+ENV PYTHONPATH=/app/services/ingestion/src:/app/ml/src
+EXPOSE 8001
+HEALTHCHECK --interval=15s --timeout=5s --retries=10 CMD python -c "import urllib.request as u; u.urlopen('http://localhost:8001/health')"
+CMD ["uvicorn", "ingestion.main:app", "--host", "0.0.0.0", "--port", "8001"]

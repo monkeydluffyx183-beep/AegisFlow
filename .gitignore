@@ -23,6 +23,10 @@ frontend/dist/
 .coverage
 coverage/
 
+# Supplied local implementation guide (reference artifact, not application data)
+.m2-guide.pdf
+.m2-guide.txt
+
 # IDE
 .vscode/
 .idea/

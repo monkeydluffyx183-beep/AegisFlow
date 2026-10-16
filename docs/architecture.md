@@ -4,14 +4,14 @@
 
 ```text
 payment gateway / txgen
-        │ POST /api/v1/transactions
+        │ POST /api/v1/transactions :8001 + X-Service-Key
         ▼
- FastAPI ingestion boundary ───────► Postgres (transactions, decisions, cases, audit)
-        │                                   ▲
-        ├── online feature adapter ─► Redis  │
-        │   (Lua velocity + profiles)       │
+ authenticated M2 ingestion ───────► Postgres (transactions + typed edges)
+        │ validate → one DB tx              ▲
+        ├── one atomic Lua update ─► Redis  │
+        │ (event-time windows/profile)      │
         ▼                                   │
- low-latency scorer                       │
+ M4 scorer / decision path                  │
  rules → champion → challenger shadow       │
  SHAP-shaped reason codes                   │
         │                                   │
@@ -26,7 +26,9 @@ payment gateway / txgen
                               human edit → manager approval → export
 ```
 
-The repository has a unified `services/platform` API for a zero-setup demo and separate packages under `services/ingestion`, `services/scoring`, `services/casework`, and `services/investigator` for deployment boundaries. The platform API does not call a model or database from the latency-critical scoring function: it reads the online feature contract, scores, then persists the result. A production split can move the scorer behind a service key without changing the contract.
+The repository has a unified `services/platform` API for a zero-setup demo and separate packages under `services/ingestion`, `services/scoring`, `services/casework`, and `services/investigator` for deployment boundaries. M2's `services/ingestion` path is deliberately separate: it validates and commits the transaction plus unique typed edges before running the Redis Lua script, and returns a null decision. The existing platform API remains the M1 scoring/case/SAR surface.
+
+The hourly graph job loads `entity_edges` into an undirected NetworkX graph, uses edge weight as PageRank strength but unit weight for hop distance, and publishes `gfeat:acct:*` plus point-in-time `graph_feature_snapshots`. Only pre-T0 `known_fraud_entities` seeds graph propagation.
 
 ## Latency budget
 
