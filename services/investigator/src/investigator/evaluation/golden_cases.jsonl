@@ -1,0 +1,2 @@
+{"case_id":"golden-smurf-01","expected_typology":"smurfing","expected_entities":["acct-ring-1042","acct-ring-2281","acct-ring-3988"],"minimum_evidence_recall":0.8,"required_faithfulness":1.0}
+{"case_id":"golden-layer-01","expected_typology":"layering","expected_entities":["acct-layer-01","acct-layer-02"],"minimum_evidence_recall":0.8,"required_faithfulness":1.0}

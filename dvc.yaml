@@ -1,0 +1,30 @@
+stages:
+  prepare_ieee:
+    cmd: python -m aegis_ml.training.prepare_ieee --input data/raw/ieee-cis --output data/processed/ieee.parquet
+    deps:
+      - data/raw/ieee-cis
+      - ml/src/aegis_ml/training/prepare_ieee.py
+    outs:
+      - data/processed/ieee.parquet
+  train_fraud:
+    cmd: python -m aegis_ml.training.train_fraud --output data/models/baseline.json
+    deps:
+      - ml/src/aegis_ml/features/definitions.py
+      - ml/src/aegis_ml/training/train_fraud.py
+      - params.yaml
+    outs:
+      - data/models/baseline.json
+  seed_known_fraud:
+    cmd: python db/seed/seed_known_fraud.py
+    deps:
+      - db/seed/seed_known_fraud.py
+      - ml/src/aegis_ml/features/definitions.py
+    params:
+      - features.known_fraud_cutoff
+  features_pit:
+    cmd: PYTHONPATH=ml/src python -m aegis_ml.features.offline --out data/features/features_pit.parquet
+    deps:
+      - ml/src/aegis_ml/features
+    outs:
+      - data/features/features_pit.parquet
+    always_changed: true

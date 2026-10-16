@@ -1,0 +1,8 @@
+[tool.ruff]
+line-length = 140
+target-version = "py311"
+# FastAPI's dependency injection idiom and the local demo's explicit fallback handling
+# are intentional. Production deployments should replace broad exception handling with
+# structured logging/metrics in the adapter layer.
+[tool.ruff.lint]
+ignore = ["B008", "BLE001", "S110", "UP017"]
